@@ -4,11 +4,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   main: {
-    build: {
-      rollupOptions: {
-        external: ['electron', 'child_process', 'fs', 'path', 'fs/promises']
-      }
-    }
+    plugins: [externalizeDepsPlugin()]
   },
   preload: {
     plugins: [externalizeDepsPlugin()]
