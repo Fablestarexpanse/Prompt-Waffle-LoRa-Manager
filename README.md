@@ -18,6 +18,11 @@ An Electron application with React
 - **Navigation**:
   - Keyboard shortcuts (Arrow keys) for image switching.
   - Visual selection in thumbnail grid.
+- **Tools Panel**:
+  - Find/Replace text in captions.
+  - Add Prefix/Suffix to captions.
+  - Batch operations (apply to all images).
+  - Statistics display.
 
 ## Tech Stack
 

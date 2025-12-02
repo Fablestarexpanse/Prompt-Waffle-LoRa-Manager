@@ -48,10 +48,78 @@ const useDatasetStore = create((set) => ({
   
   updateImageCaption: (index, caption) => set((state) => {
     const newImages = [...state.images]
-    // In a real app we'd update the file content too, but store just holds state
-    // We'll handle file writing in the component or a thunk
+    newImages[index] = { ...newImages[index], caption }
     return { images: newImages }
-  })
+  }),
+
+  // Find/Replace in current caption
+  findReplace: (find, replace) => {
+    const { selectedImageIndex, images } = get()
+    if (selectedImageIndex < 0) return
+    
+    const currentImage = images[selectedImageIndex]
+    if (currentImage && currentImage.caption) {
+      const newCaption = currentImage.caption.replaceAll(find, replace)
+      set((state) => {
+        const newImages = [...state.images]
+        newImages[selectedImageIndex] = { ...newImages[selectedImageIndex], caption: newCaption }
+        return { images: newImages }
+      })
+    }
+  },
+
+  // Add Prefix/Suffix to current caption
+  addPrefixSuffix: (prefix, suffix) => {
+    const { selectedImageIndex, images } = get()
+    if (selectedImageIndex < 0) return
+    
+    const currentImage = images[selectedImageIndex]
+    if (currentImage) {
+      const caption = currentImage.caption || ''
+      const newCaption = `${prefix}${caption}${suffix}`
+      set((state) => {
+        const newImages = [...state.images]
+        newImages[selectedImageIndex] = { ...newImages[selectedImageIndex], caption: newCaption }
+        return { images: newImages }
+      })
+    }
+  },
+
+  // Batch Find/Replace
+  batchFindReplace: async (find, replace) => {
+    const { images } = get()
+    const updatedImages = images.map(img => {
+      if (img.caption) {
+        return { ...img, caption: img.caption.replaceAll(find, replace) }
+      }
+      return img
+    })
+    
+    set({ images: updatedImages })
+    
+    // Save all updated captions
+    for (const img of updatedImages) {
+      if (img.caption !== undefined) {
+        await window.api.writeFile(img.captionPath, img.caption)
+      }
+    }
+  },
+
+  // Batch Prefix/Suffix
+  batchPrefixSuffix: async (prefix, suffix) => {
+    const { images } = get()
+    const updatedImages = images.map(img => {
+      const caption = img.caption || ''
+      return { ...img, caption: `${prefix}${caption}${suffix}` }
+    })
+    
+    set({ images: updatedImages })
+    
+    // Save all updated captions
+    for (const img of updatedImages) {
+      await window.api.writeFile(img.captionPath, img.caption)
+    }
+  }
 }))
 
 export default useDatasetStore
