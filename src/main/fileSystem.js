@@ -1,28 +1,27 @@
-import { dialog, ipcMain } from 'electron'
-import fs from 'fs/promises'
-import path from 'path'
+const { ipcMain, dialog } = require('electron')
+const fs = require('fs/promises')
+const path = require('path')
 
-export function setupFileSystemHandlers() {
+const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif']
+
+function setupFileSystemHandlers() {
   ipcMain.handle('dialog:openDirectory', async () => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
+    const result = await dialog.showOpenDialog({
       properties: ['openDirectory']
     })
-    if (canceled) {
-      return null
-    }
-    return filePaths[0]
+    return result.canceled ? null : result.filePaths[0]
   })
 
   ipcMain.handle('fs:readDirectory', async (_, dirPath) => {
-    try {
-      const files = await fs.readdir(dirPath)
-      const imageExtensions = ['.png', '.jpg', '.jpeg', '.webp']
-      
-      const images = await Promise.all(files.filter(file => {
-        const ext = path.extname(file).toLowerCase()
-        return imageExtensions.includes(ext)
-      }).map(async file => {
-        const captionPath = path.join(dirPath, path.basename(file, path.extname(file)) + '.txt')
+    const files = await fs.readdir(dirPath)
+    const imageFiles = []
+
+    for (const file of files) {
+      const ext = path.extname(file).toLowerCase()
+      if (IMAGE_EXTENSIONS.includes(ext)) {
+        const imagePath = path.join(dirPath, file)
+        const captionPath = imagePath.replace(ext, '.txt')
+        
         let hasCaption = false
         try {
           await fs.access(captionPath)
@@ -30,32 +29,32 @@ export function setupFileSystemHandlers() {
         } catch {
           hasCaption = false
         }
-        
-        return {
-          name: file,
-          path: path.join(dirPath, file),
-          captionPath,
-          caption: hasCaption // We can use this for the indicator
-        }
-      }))
 
-      return images
-    } catch (error) {
-      console.error('Error reading directory:', error)
-      throw error
+        imageFiles.push({
+          name: file,
+          path: imagePath,
+          captionPath: captionPath,
+          caption: hasCaption
+        })
+      }
     }
+
+    return imageFiles
   })
 
   ipcMain.handle('fs:readFile', async (_, filePath) => {
     try {
-      return await fs.readFile(filePath, 'utf-8')
+      const content = await fs.readFile(filePath, 'utf-8')
+      return content
     } catch (error) {
-      // If file doesn't exist, return empty string
       return ''
     }
   })
 
   ipcMain.handle('fs:writeFile', async (_, filePath, content) => {
     await fs.writeFile(filePath, content, 'utf-8')
+    return true
   })
 }
+
+module.exports = { setupFileSystemHandlers }

@@ -1,6 +1,6 @@
-import { spawn } from 'child_process'
-import path from 'path'
-import { app } from 'electron'
+const { spawn } = require('child_process')
+const path = require('path')
+const { app } = require('electron')
 
 class CaptionService {
   constructor() {
@@ -131,9 +131,11 @@ class CaptionService {
 // Singleton instance
 let captionServiceInstance = null
 
-export function getCaptionService() {
+function getCaptionService() {
   if (!captionServiceInstance) {
     captionServiceInstance = new CaptionService()
   }
   return captionServiceInstance
 }
+
+module.exports = { getCaptionService }
