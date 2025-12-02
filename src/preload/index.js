@@ -6,7 +6,9 @@ const api = {
   selectFolder: () => ipcRenderer.invoke('dialog:openDirectory'),
   readDirectory: (path) => ipcRenderer.invoke('fs:readDirectory', path),
   readFile: (path) => ipcRenderer.invoke('fs:readFile', path),
-  writeFile: (path, content) => ipcRenderer.invoke('fs:writeFile', path, content)
+  writeFile: (path, content) => ipcRenderer.invoke('fs:writeFile', path, content),
+  startCaptionService: () => ipcRenderer.invoke('caption:start'),
+  generateCaption: (imagePath) => ipcRenderer.invoke('caption:generate', imagePath)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

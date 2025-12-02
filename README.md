@@ -22,6 +22,7 @@ An Electron application with React
   - Find/Replace text in captions.
   - Add Prefix/Suffix to captions.
   - Batch operations (apply to all images).
+  - Auto-captioning with AI (Python-based BLIP model).
   - Statistics display.
 
 ## Tech Stack

@@ -1,15 +1,17 @@
 import useDatasetStore from '../../store/datasetStore'
-import { FolderOpen, Search, Type, Zap } from 'lucide-react'
+import { FolderOpen, Search, Type, Zap, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 
 export default function ToolsPanel() {
-    const { currentPath, images, setFolder, findReplace, addPrefixSuffix, batchFindReplace, batchPrefixSuffix } = useDatasetStore()
+    const { currentPath, images, setFolder, findReplace, addPrefixSuffix, batchFindReplace, batchPrefixSuffix, selectedImageIndex, updateImageCaption } = useDatasetStore()
 
     const [findText, setFindText] = useState('')
     const [replaceText, setReplaceText] = useState('')
     const [prefix, setPrefix] = useState('')
     const [suffix, setSuffix] = useState('')
     const [isProcessing, setIsProcessing] = useState(false)
+    const [captionServiceReady, setCaptionServiceReady] = useState(false)
+    const [captionServiceStatus, setCaptionServiceStatus] = useState('')
 
     const handleOpenFolder = async () => {
         const path = await window.api.selectFolder()
@@ -50,6 +52,35 @@ export default function ToolsPanel() {
             } finally {
                 setIsProcessing(false)
             }
+        }
+    }
+
+    const handleInitCaptionService = async () => {
+        setCaptionServiceStatus('Initializing...')
+        const result = await window.api.startCaptionService()
+        if (result.success) {
+            setCaptionServiceReady(true)
+            setCaptionServiceStatus('Ready')
+        } else {
+            setCaptionServiceStatus(`Error: ${result.error}`)
+        }
+    }
+
+    const handleGenerateCaption = async () => {
+        if (selectedImageIndex < 0 || !captionServiceReady) return
+        const image = images[selectedImageIndex]
+
+        setIsProcessing(true)
+        try {
+            const result = await window.api.generateCaption(image.path)
+            if (result.success) {
+                updateImageCaption(selectedImageIndex, result.caption)
+                await window.api.writeFile(image.captionPath, result.caption)
+            } else {
+                alert(`Caption generation failed: ${result.error}`)
+            }
+        } finally {
+            setIsProcessing(false)
         }
     }
 
@@ -148,6 +179,36 @@ export default function ToolsPanel() {
                         {isProcessing ? 'Processing...' : 'All Images'}
                     </button>
                 </div>
+            </div>
+
+            {/* Auto-Caption */}
+            <div className="bg-bg-tertiary rounded-lg p-3 border border-border">
+                <div className="flex items-center gap-2 mb-3">
+                    <Sparkles size={16} className="text-accent" />
+                    <h3 className="text-text-primary font-medium text-sm">Auto-Caption</h3>
+                </div>
+                {!captionServiceReady ? (
+                    <button
+                        onClick={handleInitCaptionService}
+                        disabled={isProcessing}
+                        className="w-full bg-accent hover:bg-accent/80 text-text-primary px-3 py-2 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Initialize Service
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleGenerateCaption}
+                        disabled={selectedImageIndex < 0 || isProcessing}
+                        className="w-full bg-accent hover:bg-accent/80 text-text-primary px-3 py-2 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isProcessing ? 'Generating...' : 'Generate Caption'}
+                    </button>
+                )}
+                {captionServiceStatus && (
+                    <div className="mt-2 text-xs text-text-secondary">
+                        Status: {captionServiceStatus}
+                    </div>
+                )}
             </div>
 
             {/* Stats */}

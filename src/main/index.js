@@ -3,6 +3,7 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { setupFileSystemHandlers } from './fileSystem'
+import { getCaptionService } from './captionService'
 
 function createWindow() {
   // Create the browser window.
@@ -43,13 +44,35 @@ app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
-  setupFileSystemHandlers()
-
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  // Setup file system handlers
+  setupFileSystemHandlers()
+
+  // Setup caption service handlers
+  const captionService = getCaptionService()
+  
+  ipcMain.handle('caption:start', async () => {
+    try {
+      await captionService.start()
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('caption:generate', async (_, imagePath) => {
+    try {
+      const caption = await captionService.generateCaption(imagePath)
+      return { success: true, caption }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
   })
 
   // IPC test
